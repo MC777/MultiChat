@@ -1,5 +1,7 @@
 package pl.sda.server;
 
+import com.sun.org.apache.xpath.internal.SourceTree;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,7 +20,9 @@ public class ChatServer {
             ServerSocket serverSocket = new ServerSocket(PORT);
 
             while (true){
+                System.out.println("Server waiting for client...");
                 Socket clientSocket = serverSocket.accept();
+                System.out.println("Client added");
                 sockets.add(clientSocket);
                 ServerThreadService threadService = new ServerThreadService(clientSocket);
                 Thread thread = new Thread(threadService);
