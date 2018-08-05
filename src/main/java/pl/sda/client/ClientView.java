@@ -1,6 +1,7 @@
 package pl.sda.client;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -26,6 +27,7 @@ public class ClientView extends Application {
     Stage window;
     ListView userList;
     ListView chatList;
+    ClientThreadService clientSocket;
 
     public static void main(String[] args) {
         launch(args);
@@ -106,7 +108,8 @@ public class ClientView extends Application {
         disconnectButton = new Button();
         disconnectButton.setText("Disconnect");
         disconnectButton.setOnAction(event -> {
-            System.out.println("Button clicked");
+            Platform.exit();
+            System.exit(0);
         });
 
     }
