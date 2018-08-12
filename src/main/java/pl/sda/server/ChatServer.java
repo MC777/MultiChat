@@ -1,7 +1,5 @@
 package pl.sda.server;
 
-import com.sun.org.apache.xpath.internal.SourceTree;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -14,12 +12,13 @@ import java.util.List;
 public class ChatServer {
     private static final Integer PORT = 8434;
     static List<Socket> sockets = new ArrayList<>();
+    static List<String> users = new ArrayList<>();
 
     public static void main(String[] args) {
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
-
-            while (true){
+            System.out.println("Started server at port: " + PORT);
+            while (true) {
                 System.out.println("Server waiting for client...");
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client added");
@@ -34,6 +33,5 @@ public class ChatServer {
             e.printStackTrace();
         }
     }
-
 
 }

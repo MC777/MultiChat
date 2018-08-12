@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+
 import static pl.sda.server.ChatServer.sockets;
 import static pl.sda.server.ChatServer.users;
-
 
 /**
  * Created by MCK on 04.08.2018 14:54
@@ -22,31 +22,52 @@ public class ServerThreadService implements Runnable {
         this.socket = socket;
     }
 
-    private void addUser() throws IOException{
+    public void sendMessage(String message) throws IOException {
+        for (Socket socket : sockets) {
+            PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
+            printWriter.println(message);
+            printWriter.flush();
+        }
+    }
+
+    private void removeSocket() {
+        for (Socket socket : sockets) {
+            if (this.socket == socket) {
+                sockets.remove(socket);
+            }
+        }
+    }
+
+    private void addUser() throws IOException {
         String user = reader.readLine();
         users.add(user);
         sendMessage(user + " - has joined to the chat");
     }
 
-    private void removeUser(String user){
+    private void removeUser(String user) {
         users.remove(user);
     }
 
     @Override
     public void run() {
         try {
-//            writer = new PrintWriter(socket.getOutputStream());
-//            reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-            while (true){
+            writer = new PrintWriter(this.socket.getOutputStream());
+            reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            addUser();
+            sendMessage("<userLst>" + users);
+            while (true) {
                 String message;
-                if ((message = reader.readLine()) != null){
-                    for (Socket s : ChatServer.sockets){
-                        PrintWriter printWriter = new PrintWriter(s.getOutputStream());
-                        printWriter.println(message);
-                        printWriter.flush();
-                    }
+                if ((message = reader.readLine()) == null) {
+                    return;
                 }
+                if (message.contains("<levCht>")) {
+                    sendMessage(message.substring(8) + " leave chat");
+                    removeUser(message.substring(8));
+                    sendMessage("<userLst>" + users);
+                    removeSocket();
+                    return;
+                }
+                sendMessage(message);
             }
         } catch (IOException e) {
             e.printStackTrace();

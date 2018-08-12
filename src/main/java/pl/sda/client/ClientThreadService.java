@@ -1,9 +1,7 @@
 package pl.sda.client;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
-import pl.sda.server.ChatServer;
+import javafx.application.Platform;
 
-import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -24,12 +22,12 @@ public class ClientThreadService implements Runnable {
         reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
-    public void sendMessage(String message){
+    public void sendMessage(String message) {
         writer.println(message);
         writer.flush();
     }
 
-    public void disconnect(String username){
+    public void disconnect(String username) {
         writer.println("<levCht>" + username);
         writer.flush();
         System.exit(0);
@@ -38,16 +36,24 @@ public class ClientThreadService implements Runnable {
     @Override
     public void run() {
         try {
+            reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+            writer = new PrintWriter(this.socket.getOutputStream());
             while (true) {
                 String message;
-                if ((message = reader.readLine()) != null){
-                    //TODO
-
-                    ClientView.chatArea.appendText(message + "\n");
-                    //System.out.println(message); // ta wartosc do TextArea append text
+                if ((message = reader.readLine()) != null) {
+                    if (message.contains("<userLst>")) {
+                        String[] users = getUsers(message);
+                        Platform.runLater(() -> {
+                            ClientView.userList.getItems().clear();
+                            ClientView.userList.getItems().addAll(users);
+                            //ClientView.users.getItems().addAll(users);
+                        });
+                    } else {
+                        ClientView.chatArea.appendText(message + "\n");
+                    }
                 }
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             try {
@@ -59,5 +65,12 @@ public class ClientThreadService implements Runnable {
             }
 
         }
+    }
+
+    private String[] getUsers(String message) {
+        return message.substring(9)
+                .replace("[", "")
+                .replace("]", "")
+                .split(", ");
     }
 }

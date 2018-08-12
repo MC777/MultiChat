@@ -1,9 +1,6 @@
 package pl.sda.client;
 
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -15,6 +12,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -28,48 +26,42 @@ public class ClientView extends Application {
     Button disconnectButton;
     Label loginLable;
     Label infoLable;
-    TextField loginField;
+    static TextField loginField;
     static TextField chatField;
     Scene chatScene;
     Stage window;
-    ListView userList;
+    static ListView userList;
     static TextArea chatArea;
     ClientThreadService clientSocket;
 
     private static final String HOSTNAME = "localhost";
     private static final Integer PORT = 8434;
     private String username = "Anonymous";
+    private String loggedUser;
 
     public static void main(String[] args) {
         launch(args);
-        ClientThreadService threadService = null;
-
-        //TODO: to do odzielnej klasy np connect zaincjuj   ClientThreadService clientSocket; bo teraz jest nullem
-       //TODO:
-        //threadService.sendMessage(SCANNER.nextLINE);
-
-
     }
 
-    private void connectWithServer(){
+    private void connectWithServer() {
         try {
-            Socket socket = new Socket(HOSTNAME,PORT);
+            Socket socket = new Socket(HOSTNAME, PORT);
             System.out.println("You are connected to " + HOSTNAME + " port " + PORT);
             sendUsernameToServer(socket);
             clientSocket = new ClientThreadService(socket);
             Thread thread = new Thread(clientSocket);
             thread.start();
-
-            //clientSocket= new Socket(HOSTNAME,PORT);
-            //threadService = new ClientThreadService(clientSocket);
-            //Thread thread = new Thread(threadService);
-            //thread.start();
         } catch (IOException e) {
             System.err.println("Can not connect to server");
             e.printStackTrace();
         }
     }
 
+    private void sendUsernameToServer(Socket socket) throws IOException {
+        PrintWriter printWriter = new PrintWriter(socket.getOutputStream());
+        printWriter.println(username);
+        printWriter.flush();
+    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
@@ -77,10 +69,9 @@ public class ClientView extends Application {
         window = primaryStage;
 
         buildLoginLable();
-        buildLoginInputField();
+        buildLoginInputField(primaryStage);
         buildLoginButton(primaryStage);
         buildInfoLable();
-
 
         primaryStage.setTitle(username);
 
@@ -92,7 +83,7 @@ public class ClientView extends Application {
         GridPane.setConstraints(loginButton, 2, 0);
         GridPane.setConstraints(infoLable, 1, 1);
 
-        loginView.getChildren().addAll(loginLable, loginField, loginButton,infoLable);
+        loginView.getChildren().addAll(loginLable, loginField, loginButton, infoLable);
 
         BorderPane borderPanel = new BorderPane();
         borderPanel.setCenter(loginView);
@@ -109,18 +100,41 @@ public class ClientView extends Application {
         loginButton.setText("Login");
         loginButton.setOnAction((event) -> {
 
-            if(loginField.getText().equals("")){
-                infoLable.setText("Please provide login!");
-            } else {
-                username = loginField.getText().trim();
-                primaryStage.setTitle(username.toUpperCase() + " - CHAT VIEW");
-                window.setScene(chatScene);
-            }
+            loginCheck(primaryStage);
         });
     }
 
-    private void buildLoginInputField() {
+    private void loginCheck(Stage primaryStage) {
+        loggedUser = loginField.getText().trim();
+
+        if (loginField.getText().equals("")) {
+            infoLable.setText("Please provide login!");
+
+        } else {
+
+            for (int u = 0; u < userList.getItems().size(); u++) {
+
+                if (loggedUser.equals(userList.getItems())) {
+                    infoLable.setText("Provided login already exist!");
+                    return;
+                }
+            }
+            username = loginField.getText().trim();
+            primaryStage.setTitle(username + " - chat view");
+            window.setScene(chatScene);
+
+            connectWithServer();
+        }
+    }
+
+    private void buildLoginInputField(Stage primaryStage) {
         loginField = new TextField();
+        loginField.setPromptText("Type your login here:");
+        loginField.setOnKeyPressed(b -> {
+            if (b.getCode() == KeyCode.ENTER) {
+                loginCheck(primaryStage);
+            }
+        });
     }
 
     private void buildLoginLable() {
@@ -155,14 +169,16 @@ public class ClientView extends Application {
         BorderPane borderPanel = new BorderPane();
         borderPanel.setCenter(chatView);
         chatScene = new Scene(borderPanel, 730, 500);
+
     }
 
     private void buildDisconnectButton() {
         disconnectButton = new Button();
         disconnectButton.setText("Disconnect");
         disconnectButton.setOnAction(event -> {
-            Platform.exit();
-            System.exit(0);
+//            Platform.exit();
+//            System.exit(0);
+            clientSocket.disconnect(username);
         });
 
     }
@@ -172,11 +188,8 @@ public class ClientView extends Application {
         chatField.setPrefWidth(500);
         chatField.setPromptText("Type something and press ENTER");
         chatField.setOnKeyPressed(b -> {
-            if (b.getCode() == KeyCode.ENTER && (!chatField.getText().equals(""))){
-                //TODO:
-                //LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
-                clientSocket.sendMessage(chatField.getText());
-
+            if (b.getCode() == KeyCode.ENTER && (!chatField.getText().equals(""))) {
+                clientSocket.sendMessage(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")) + " [" + username + "]" + " - " + chatField.getText());
                 chatField.clear();
                 chatField.requestFocus();
             }
@@ -187,17 +200,17 @@ public class ClientView extends Application {
         chatArea = new TextArea();
         chatArea.setPrefWidth(500);
         chatArea.setEditable(false);
-        chatArea.setPadding(new Insets(0,0,0,5));
+        chatArea.setWrapText(true);
+        chatArea.setPadding(new Insets(0, 0, 0, 5));
 
     }
 
     private void buildUsersChatList() {
         userList = new ListView();
         userList.setPrefWidth(200);
-        //TODO:
-        String loggedUser = loginField.getText();
-        ObservableList<String> users = FXCollections.observableArrayList (loggedUser);
-        userList.setItems(users);
+        //ObservableList<String> users;
+        //users = FXCollections.observableArrayList(loggedUser);
+        //userList.setItems(users);
     }
 
 }
