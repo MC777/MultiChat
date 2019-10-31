@@ -1,6 +1,8 @@
-## MultiChat
+### MultiChat
 
-## Description:
+### Description:
+
+Simple client-server chat with use of JavaFX and sockets.
 
 ## Screenshots:
 
