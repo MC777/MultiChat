@@ -10,34 +10,31 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import pl.sda.server.ChatServer;
 
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
-/**
- * Created by MCK on 04.08.2018 14:52
- **/
 public class ClientView extends Application {
 
-    Button loginButton;
-    Button disconnectButton;
-    Label loginLable;
-    Label infoLable;
-    static TextField loginField;
-    static TextField chatField;
-    Scene chatScene;
-    Stage window;
+    private Button loginButton;
+    private Button disconnectButton;
+    private Label loginLable;
+    private Label infoLable;
+    private static TextField loginField;
+    private static TextField chatField;
+    private Scene chatScene;
+    private Stage window;
     static ListView userList;
     static TextArea chatArea;
-    ClientThreadService clientSocket;
+    private ClientThreadService clientSocket;
 
     private static final String HOSTNAME = "localhost";
     private static final Integer PORT = 8434;
     private String username = "Anonymous";
-    private String loggedUser;
 
     public static void main(String[] args) {
         launch(args);
@@ -64,17 +61,13 @@ public class ClientView extends Application {
     }
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
-
+    public void start(Stage primaryStage) {
         window = primaryStage;
-
         buildLoginLable();
         buildLoginInputField(primaryStage);
         buildLoginButton(primaryStage);
         buildInfoLable();
-
         primaryStage.setTitle(username);
-
         GridPane loginView = new GridPane();
         loginView.setPadding(new Insets(30, 5, 20, 5));
         loginView.setHgap(5);
@@ -82,47 +75,53 @@ public class ClientView extends Application {
         GridPane.setConstraints(loginField, 1, 0);
         GridPane.setConstraints(loginButton, 2, 0);
         GridPane.setConstraints(infoLable, 1, 1);
-
         loginView.getChildren().addAll(loginLable, loginField, loginButton, infoLable);
-
         BorderPane borderPanel = new BorderPane();
         borderPanel.setCenter(loginView);
-        Scene loginScene = new Scene(borderPanel, 320, 100);
+        Scene loginScene = new Scene(borderPanel, 350, 100);
         primaryStage.setScene(loginScene);
         primaryStage.show();
-
         buildChatView();
-
     }
 
     private void buildLoginButton(Stage primaryStage) {
         loginButton = new Button();
         loginButton.setText("Login");
         loginButton.setOnAction((event) -> {
-
             loginCheck(primaryStage);
         });
     }
 
     private void loginCheck(Stage primaryStage) {
-        loggedUser = loginField.getText().trim();
+        String loggedUser = loginField.getText().trim();
+        List<String> list = ChatServer.getUsers();
 
         if (loginField.getText().equals("")) {
             infoLable.setText("Please provide login!");
-
         } else {
-
-            for (int u = 0; u < userList.getItems().size(); u++) {
-
-                if (loggedUser.equals(userList.getItems())) {
-                    infoLable.setText("Provided login already exist!");
-                    return;
+            try (BufferedReader reader = new BufferedReader(new FileReader("file.txt"))) {
+                while (true) {
+                    String line = reader.readLine();
+                    if (line == null) {
+                        break;
+                    } else {
+                        if (loggedUser.equals(line)) {
+                            infoLable.setText("Provided login already exist!");
+                            return;
+                        }
+                    }
                 }
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+
             username = loginField.getText().trim();
+            ChatServer.setUsers(list);
+            ChatServer.addUser(loggedUser);
             primaryStage.setTitle(username + " - chat view");
             window.setScene(chatScene);
-
             connectWithServer();
         }
     }
@@ -159,10 +158,10 @@ public class ClientView extends Application {
         buildChatTextField();
         buildChatList();
         buildUsersChatList();
-        chatView.setConstraints(disconnectButton, 0, 0);
-        chatView.setConstraints(chatArea, 0, 1);
-        chatView.setConstraints(chatField, 0, 2);
-        chatView.setConstraints(userList, 1, 1);
+        GridPane.setConstraints(disconnectButton, 0, 0);
+        GridPane.setConstraints(chatArea, 0, 1);
+        GridPane.setConstraints(chatField, 0, 2);
+        GridPane.setConstraints(userList, 1, 1);
 
         chatView.getChildren().addAll(disconnectButton, chatField, chatArea, userList);
 
@@ -176,11 +175,8 @@ public class ClientView extends Application {
         disconnectButton = new Button();
         disconnectButton.setText("Disconnect");
         disconnectButton.setOnAction(event -> {
-//            Platform.exit();
-//            System.exit(0);
             clientSocket.disconnect(username);
         });
-
     }
 
     private void buildChatTextField() {
@@ -202,15 +198,10 @@ public class ClientView extends Application {
         chatArea.setEditable(false);
         chatArea.setWrapText(true);
         chatArea.setPadding(new Insets(0, 0, 0, 5));
-
     }
 
     private void buildUsersChatList() {
         userList = new ListView();
         userList.setPrefWidth(200);
-        //ObservableList<String> users;
-        //users = FXCollections.observableArrayList(loggedUser);
-        //userList.setItems(users);
     }
-
 }

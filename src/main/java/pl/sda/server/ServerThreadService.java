@@ -9,9 +9,6 @@ import java.net.Socket;
 import static pl.sda.server.ChatServer.sockets;
 import static pl.sda.server.ChatServer.users;
 
-/**
- * Created by MCK on 04.08.2018 14:54
- **/
 public class ServerThreadService implements Runnable {
 
     private Socket socket;
@@ -80,7 +77,6 @@ public class ServerThreadService implements Runnable {
                 System.err.println("Can not close streams");
                 e.printStackTrace();
             }
-
         }
     }
 }

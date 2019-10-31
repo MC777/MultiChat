@@ -1,16 +1,11 @@
 package pl.sda.client;
 
 import javafx.application.Platform;
+import pl.sda.server.ChatServer;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 
-/**
- * Created by MCK on 04.08.2018 14:53
- **/
 public class ClientThreadService implements Runnable {
     private Socket socket;
     private PrintWriter writer;
@@ -28,13 +23,35 @@ public class ClientThreadService implements Runnable {
     }
 
     public void disconnect(String username) {
+        trim(username);
         writer.println("<levCht>" + username);
         writer.flush();
         System.exit(0);
+
+    }
+
+    public void trim(String username){
+        try (BufferedReader reader = new BufferedReader(new FileReader("file.txt"))) {
+            while (true) {
+                String line = reader.readLine();
+                if (line == null) {
+                    break;
+                } else {
+                    if (username.equals(line)) {
+                        line.trim();
+                    }
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void run() {
+
         try {
             reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
             writer = new PrintWriter(this.socket.getOutputStream());
@@ -46,7 +63,8 @@ public class ClientThreadService implements Runnable {
                         Platform.runLater(() -> {
                             ClientView.userList.getItems().clear();
                             ClientView.userList.getItems().addAll(users);
-                            //ClientView.users.getItems().addAll(users);
+                            ChatServer.updateUsersList(getUsers(message));
+                            ChatServer.usersList = users;
                         });
                     } else {
                         ClientView.chatArea.appendText(message + "\n");
